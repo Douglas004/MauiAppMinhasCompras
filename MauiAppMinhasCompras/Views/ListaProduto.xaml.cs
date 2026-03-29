@@ -66,13 +66,19 @@ public partial class ListaProduto : ContentPage
         }
     }
 
-    private void ToolbarItem_Clicked_1(object sender, EventArgs e)
+    private async void ToolbarItem_Clicked_1(object sender, EventArgs e)
     {
-        double soma = lista.Sum(i => i.Total);
+        List<Produto> lista = await App.Db.Getall();
 
-        string msg = $"O total é {soma:C}";
+        // LINQ para agrupar e somar
+        var relatorio = lista.GroupBy(p => p.Categoria)
+                             .Select(g => $"{g.Key} {g.Sum(p => p.Total):C}")
+                             .ToList();
 
-        DisplayAlert("Total do Produtos", msg, "OK");
+        string mensagem = string.Join("\n", relatorio);
+        decimal totalGeral = (decimal)lista.Sum(p => p.Total);
+
+        await DisplayAlert("Relatório por Categoria", $"{mensagem}\n\nTOTAL GERAL: {totalGeral:C}", "OK");
     }
 
     private async void MenuItem_Clicked(object sender, EventArgs e)
@@ -133,6 +139,23 @@ public partial class ListaProduto : ContentPage
         } finally
         {
             lst_produtos.IsRefreshing = false;
+        }
+    }
+    private async void pck_filtro_categoria_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        var picker = (Picker)sender;
+        string selecionada = (string)picker.SelectedItem;
+
+        List<Produto> lista = await App.Db.Getall();
+
+        if (selecionada != "Todos")
+        {
+            var filtrada = lista.Where(p => p.Categoria == selecionada).ToList();
+            lst_produtos.ItemsSource = filtrada;
+        }
+        else
+        {
+            lst_produtos.ItemsSource = lista;
         }
     }
 }
